@@ -21,7 +21,7 @@ import {paramsToState} from './decorators/mapping';
 import {iconsList} from '../icons/icons';
 import {Display} from '/src/core/displays';
 import {FontFormat} from '/src/draw/fonts/font';
-import {Project, ProjectScreen} from '../types';
+import {Project, ProjectScreen, Page} from '../types';
 import {TFTeSPIPlatform} from '../platforms/tft-espi';
 
 const sessions = new Map<string, UnwrapRef<Session>>();
@@ -38,6 +38,8 @@ type TSessionState = {
     isPublic: boolean;
     customFonts: TPlatformFont[];
     warnings: string[];
+    pages: Page[];
+    currentPageId: string | null;
 };
 
 export class Session {
@@ -72,6 +74,8 @@ export class Session {
         isPublic: false,
         customFonts: [],
         warnings: [],
+        pages: [],
+        currentPageId: null,
     });
 
     history: ChangeHistory = useHistory();
@@ -237,10 +241,12 @@ export class Session {
         this.lock();
         this.editor.clear();
         this.history.clear(false);
-        let layersToload = layers ?? JSON.parse(localStorage.getItem(`${name}_lopaka_layers`));
+        // TODO: refactor this mess
+        // Remove layer loading from here, it will be handled by page management
+        // let layersToload = layers ?? JSON.parse(localStorage.getItem(`${name}_lopaka_layers`));
         this.editor.font = getFont(fonts[0].name);
         this.unlock();
-        await loadLayers(layersToload ?? []);
+        // await loadLayers(layersToload ?? []);
         if (!layers) {
             localStorage.setItem('lopaka_library', name);
             isLogged && logEvent('select_library', name);
@@ -321,6 +327,7 @@ export class Session {
             const displayStoredArr = displayStored.split('×').map((n) => parseInt(n));
             this.setDisplay(new Point(displayStoredArr[0], displayStoredArr[1]));
         }
+        this.loadPagesFromLocalStorage();
     };
     constructor() {
         this.history.subscribe((event: THistoryEvent, change: TChange) => {
@@ -396,6 +403,175 @@ export class Session {
             }
         });
     }
+
+    createPage = (name: string = 'New Page'): string => {
+        const pageId = Date.now().toString();
+        const newPage: Page = {
+            id: pageId,
+            name,
+            layers: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        this.state.pages.push(newPage);
+        this.switchToPage(pageId);
+        this.savePagesToLocalStorage();
+        return pageId;
+    };
+
+    switchToPage = (pageId: string): void => {
+        // Save the layers of the current page before switching
+        if (this.state.currentPageId) {
+            this.saveCurrentPageLayers();
+        }
+
+        const page = this.state.pages.find((p) => p.id === pageId);
+        if (page) {
+            this.state.currentPageId = pageId;
+
+            // Completely clear the current layers - FIX for duplication
+            this.state.layers.length = 0; // Ensures the array is completely cleared
+
+            // Load the layers of the selected page
+            if (page.layers && page.layers.length > 0) {
+                this.loadPageLayers(page.layers);
+            }
+            this.virtualScreen.redraw(false);
+            localStorage.setItem('lopaka_current_page', pageId);
+        }
+    };
+
+    saveCurrentPageLayers = (): void => {
+        if (!this.state.currentPageId) return;
+
+        const page = this.state.pages.find((p) => p.id === this.state.currentPageId);
+        if (page) {
+            page.layers = this.state.layers.map((l) => l.state);
+            page.updatedAt = new Date();
+            page.thumbnail = this.virtualScreen.canvas?.toDataURL();
+            this.savePagesToLocalStorage();
+        }
+    };
+
+    deletePage = (pageId: string): void => {
+        if (this.state.pages.length <= 1) {
+            console.warn("Can't delete the last page");
+            return;
+        }
+
+        const pageIndex = this.state.pages.findIndex((p) => p.id === pageId);
+        if (pageIndex !== -1) {
+            this.state.pages.splice(pageIndex, 1);
+
+            // If the current page was deleted, switch to the first available one
+            if (this.state.currentPageId === pageId) {
+                this.switchToPage(this.state.pages[0].id);
+            }
+
+            this.savePagesToLocalStorage();
+        }
+    };
+
+    renamePage = (pageId: string, newName: string): void => {
+        const page = this.state.pages.find((p) => p.id === pageId);
+        if (page) {
+            page.name = newName;
+            page.updatedAt = new Date();
+            this.savePagesToLocalStorage();
+        }
+    };
+
+    duplicatePage = (pageId: string): string => {
+        const originalPage = this.state.pages.find((p) => p.id === pageId);
+        if (!originalPage) return '';
+
+        const newPageId = Date.now().toString();
+        const duplicatedPage: Page = {
+            id: newPageId,
+            name: `${originalPage.name} (Copy)`,
+            layers: JSON.parse(JSON.stringify(originalPage.layers)), // Deep clone
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        this.state.pages.push(duplicatedPage);
+        this.savePagesToLocalStorage();
+        return newPageId;
+    };
+
+    // Public method for testing - exposes loadPagesFromLocalStorage
+    reloadPagesFromStorage = (): void => {
+        this.loadPagesFromLocalStorage();
+    };
+
+    private savePagesToLocalStorage = (): void => {
+        const pagesToSave = this.state.pages.map((page) => ({
+            ...page,
+            createdAt: page.createdAt.toISOString(),
+            updatedAt: page.updatedAt.toISOString(),
+        }));
+        localStorage.setItem('lopaka_pages', JSON.stringify(pagesToSave));
+    };
+
+    private loadPagesFromLocalStorage = (): void => {
+        const stored = localStorage.getItem('lopaka_pages');
+        if (stored) {
+            const pagesData = JSON.parse(stored);
+            this.state.pages = pagesData.map((page) => ({
+                ...page,
+                createdAt: new Date(page.createdAt),
+                updatedAt: new Date(page.updatedAt),
+            }));
+        }
+
+        // If there are no pages, create a default one
+        if (this.state.pages.length === 0) {
+            this.createPage('Page 1');
+            return;
+        }
+
+        // Clear layers before loading the page - FIX for duplication
+        this.state.layers.length = 0;
+
+        const currentPageId = localStorage.getItem('lopaka_current_page');
+        if (currentPageId && this.state.pages.find((p) => p.id === currentPageId)) {
+            this.switchToPage(currentPageId);
+        } else if (this.state.pages.length > 0) {
+            this.switchToPage(this.state.pages[0].id);
+        }
+    };
+
+    private loadPageLayers = (layerStates: any[]): void => {
+        // Clear current layers before loading new ones - FIX for duplication
+        this.state.layers.length = 0;
+
+        const usedFonts = layerStates.filter((s) => s.t == 'string').map((s) => s.f);
+        this.loadFontsForLayers(usedFonts).then(() => {
+            // Create layers directly in the array instead of using addLayer
+            const newLayers: AbstractLayer[] = [];
+
+            layerStates.forEach((state) => {
+                const layerClass = this.LayerClassMap[state.t];
+                if (layerClass) {
+                    const layer = new layerClass(this.getPlatformFeatures());
+                    layer.state = state;
+
+                    // Configure the layer without using addLayer to avoid duplication
+                    const {display, scale} = this.state;
+                    layer.resize(display, scale);
+                    layer.index = layer.index ?? state.index ?? newLayers.length + 1;
+                    layer.name = layer.name ?? state.name ?? 'Layer ' + (newLayers.length + 1);
+
+                    newLayers.unshift(layer);
+                }
+            });
+
+            // Completely replace the layers array
+            this.state.layers = newLayers;
+            this.virtualScreen.redraw();
+        });
+    };
 }
 
 export async function loadLayers(states: any[], append: boolean = false, saveHistory: boolean = false) {

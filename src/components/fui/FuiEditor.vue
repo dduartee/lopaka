@@ -13,6 +13,7 @@ import FuiSelectPlatform from '/src/components/fui/FuiSelectPlatform.vue';
 import FuiSelectScale from '/src/components/fui/FuiSelectScale.vue';
 import FuiTabs from '/src/components/fui/FuiTabs.vue';
 import FuiTools from '/src/components/fui/FuiTools.vue';
+import PageManager from '/src/components/fui/PageManager.vue';
 import Icon from '/src/components/layout/Icon.vue';
 import {Point} from '/src/core/point';
 import {saveLayers, useSession} from '/src/core/session';
@@ -22,6 +23,7 @@ import {debounce, logEvent} from '/src/utils';
 import {PaintLayer} from '/src/core/layers/paint.layer';
 import {Uint32RawPlatform} from '/src/platforms/uint32-raw';
 import ImportImageBtn from './importImage/ImportImageBtn.vue';
+import {usePageKeyboardShortcuts} from '/src/composables/usePages';
 
 const props = defineProps<{
     project: Project | null;
@@ -44,6 +46,8 @@ const {updates} = toRefs(session.virtualScreen.state);
 const flipper: ShallowRef<FlipperRPC> = ref(null);
 const uploading = ref(false);
 
+const {handleKeyboardShortcut} = usePageKeyboardShortcuts();
+
 const isFlipper = computed(() => platform.value === FlipperPlatform.id);
 const isSerialSupported = computed(() => window.navigator.serial !== undefined);
 const flipperPreviewBtnText = computed(() => (flipper.value ? 'Disconnect' : 'Live View'));
@@ -56,6 +60,7 @@ watch(
         if (flipper.value) {
             sendFlipperImage();
         }
+        session.saveCurrentPageLayers();
         saveLayers(props.screen.id);
         updateScreenPreview(props.screen.id);
     }, 1000)
@@ -67,6 +72,16 @@ watch(warnings, () => {
 
 onMounted(async () => {
     navigator.serial?.addEventListener('disconnect', flipperDisconnect);
+
+    const keyboardHandler = (event: KeyboardEvent) => {
+        handleKeyboardShortcut(event);
+    };
+
+    document.addEventListener('keydown', keyboardHandler, {capture: true});
+
+    onBeforeUnmount(() => {
+        document.removeEventListener('keydown', keyboardHandler, {capture: true});
+    });
 });
 
 onBeforeUnmount(() => {
@@ -176,6 +191,7 @@ function setWarnings(warnings) {
         </div>
         <div>
             <slot name="title"></slot>
+            <PageManager v-if="!readonly && isScreenLoaded && !isScreenNotFound" />
             <div
                 class="flex flex-row text-sm mb-2 justify-center"
                 v-if="!auth && !readonly"

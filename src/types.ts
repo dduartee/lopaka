@@ -9,6 +9,8 @@ export interface Project {
     private?: boolean;
     stars_count?: number;
     is_starred?: boolean;
+    // Adding page support to the project
+    pages?: Page[];
 }
 
 export interface ProjectScreen {
@@ -19,4 +21,18 @@ export interface ProjectScreen {
     user_id?: string;
     img_preview?: string;
     layers?: any[];
+}
+
+export interface Page {
+    id: string;
+    name: string;
+    layers: any[];
+    createdAt: Date;
+    updatedAt: Date;
+    thumbnail?: string; // Base64 preview image
+}
+
+export interface PageState {
+    pages: Page[];
+    currentPageId: string | null;
 }
