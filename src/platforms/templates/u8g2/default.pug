@@ -55,6 +55,17 @@ each layer in layers
                 | @!{layer.uid};!{pad}u8g2.drawStr(@x:!{layer.position[0]}, @y:!{layer.position[1]}, @text:"!{layer.text}");
             else
                 | @!{layer.uid};!{pad}u8g2.drawUTF8(@x:!{layer.position[0]}, @y:!{layer.position[1]}, @text:"!{layer.text}");
+        when 'button'
+            //- Native u8g2 button implementation with full flag support
+            if layer.font != font
+                - font = layer.font
+                | !{pad}u8g2.setFont(u8g2_font_!{layer.font}_tr);
+                |
+            //- Calculate u8g2 button flags: base + text center + XOR mode
+            - var flags = layer.flags || 2; // Default to U8G2_BTN_BW2
+            - if (layer.textCenter) flags |= 64; // Add U8G2_BTN_HCENTER for centered text
+            - if (layer.inverted) flags |= 8; // Add U8G2_BTN_INV for XOR mode (inverted rendering)
+            | @!{layer.uid};!{pad}u8g2.drawButtonUTF8(@x:!{layer.position[0]}, @y:!{layer.position[1]}, @flags:!{flags}, @width:!{layer.width || 0}, @paddingH:!{layer.paddingH || 2}, @paddingV:!{layer.paddingV || 2}, @text:"!{layer.text}");
         when 'paint'
         when 'icon'
             - var func = settings.progmem ? 'drawXBMP' : 'drawXBM'

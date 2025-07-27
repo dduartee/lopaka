@@ -1,4 +1,5 @@
 import {AbstractLayer} from '../core/layers/abstract.layer';
+import {ButtonLayer} from '../core/layers/button.layer';
 import {CircleLayer} from '../core/layers/circle.layer';
 import {EllipseLayer} from '../core/layers/ellipse.layer';
 import {IconLayer} from '../core/layers/icon.layer';
@@ -17,6 +18,7 @@ const layerClassMap = {
     string: TextLayer,
     paint: PaintLayer,
     ellipse: EllipseLayer,
+    button: ButtonLayer,
 };
 export const layersMock: AbstractLayer[] = [
     {

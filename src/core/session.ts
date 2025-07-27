@@ -7,6 +7,7 @@ import {U8g2Platform} from '../platforms/u8g2';
 import {applyColor, generateUID, imageDataToImage, imageToImageData, loadImageDataAsync, logEvent} from '../utils';
 import {ChangeHistory, TChange, THistoryEvent, useHistory} from './history';
 import {AbstractLayer} from './layers/abstract.layer';
+import {ButtonLayer} from './layers/button.layer';
 import {CircleLayer} from './layers/circle.layer';
 import {EllipseLayer} from './layers/ellipse.layer';
 import {IconLayer} from './layers/icon.layer';
@@ -50,6 +51,7 @@ export class Session {
         string: TextLayer,
         paint: PaintLayer,
         ellipse: EllipseLayer,
+        button: ButtonLayer,
         // TODO: deprecated, use PaintLayer instead
         icon: IconLayer,
     };

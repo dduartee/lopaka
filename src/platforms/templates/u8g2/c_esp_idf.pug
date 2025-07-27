@@ -54,6 +54,17 @@ each layer in layers
                 | @!{layer.uid};!{pad}u8g2_DrawStr(&u8g2, !{layer.position[0]}, !{layer.position[1]}, "!{layer.text}");
             else
                 | @!{layer.uid};!{pad}u8g2_DrawUTF8(&u8g2, !{layer.position[0]}, !{layer.position[1]}, "!{layer.text}");
+        when 'button'
+            //- Native u8g2 button implementation with full flag support
+            if layer.font != font
+                - font = layer.font
+                | !{pad}u8g2_SetFont(&u8g2, u8g2_font_!{layer.font}_tr);
+                |
+            //- Calculate u8g2 button flags: base + text center + XOR mode
+            - var flags = layer.flags || 2; // Default to U8G2_BTN_BW2
+            - if (layer.textCenter) flags |= 64; // Add U8G2_BTN_HCENTER for centered text
+            - if (layer.inverted) flags |= 8; // Add U8G2_BTN_INV for XOR mode (inverted rendering)
+            | @!{layer.uid};!{pad}u8g2_DrawButtonUTF8(&u8g2, !{layer.position[0]}, !{layer.position[1]}, !{flags}, !{layer.width || 0}, !{layer.paddingH || 2}, !{layer.paddingV || 2}, "!{layer.text}");
         when 'paint'
         when 'icon'
             | @!{layer.uid};!{pad}u8g2_DrawXBM(&u8g2, !{layer.position[0]}, !{layer.position[1]}, !{layer.size[0]}, !{layer.size[1]}, !{layer.imageName});

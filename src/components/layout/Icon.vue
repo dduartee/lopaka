@@ -88,6 +88,7 @@ const icons = {
     paint: PaintBrushIcon,
     photo: PhotoIcon,
     rect: RectangleGroupIcon,
+    button: RectangleGroupIcon,
     select: CursorArrowRaysIcon,
     shield: ShieldExclamationIcon,
     trash: TrashIcon,

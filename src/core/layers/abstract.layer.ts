@@ -45,7 +45,12 @@ export type TModifierName =
     | 'inverted'
     | 'color'
     | 'overlay'
-    | 'locked';
+    | 'locked'
+    // Button-specific modifiers for u8g2 compatibility
+    | 'paddingH'   // horizontal padding
+    | 'paddingV'   // vertical padding
+    | 'flags'      // u8g2 button flags (border, shadow, etc.)
+    | 'textCenter'; // text horizontal center alignment
 
 export type TLayerModifier = {
     setValue?(value: any): void;

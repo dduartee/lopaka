@@ -67,6 +67,24 @@ each layer in layers
         when 'paint'
         when 'icon'
             | @!{layer.uid};!{pad}display.drawBitmap(!{layer.position[0]}, !{layer.position[1]}, !{layer.imageName}, !{layer.size[0]}, !{layer.size[1]}, !{packColor(layer.color)});
+        when 'button'
+            | !{pad}// Button layer - rendered as rectangle + text
+            if layer.inverted
+                | @!{layer.uid};!{pad}display.fillRect(!{layer.position[0]}, !{layer.position[1]}, !{layer.size[0]}, !{layer.size[1]}, !{packColor(layer.color)});
+            else  
+                | @!{layer.uid};!{pad}display.drawRect(!{layer.position[0]}, !{layer.position[1]}, !{layer.size[0]}, !{layer.size[1]}, !{packColor(layer.color)});
+            if layer.font != font 
+                - font = layer.font
+                if font == 'adafruit'
+                    | !{pad}display.setFont();
+                    |
+                else
+                    | !{pad}display.setFont(&!{layer.font});
+                    |
+            - var textX = layer.textCenter ? layer.position[0] + (layer.size[0] - (layer.text.length * 6)) / 2 : layer.position[0] + (layer.paddingH || 2)
+            - var textY = layer.position[1] + (layer.size[1] + 8) / 2
+            | !{pad}display.setCursor(!{textX}, !{textY});
+            | @!{layer.uid};!{pad}display.print("!{layer.text}");
         default 
             |
             | // Unknown layer type !{layer.type}

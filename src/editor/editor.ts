@@ -14,6 +14,7 @@ import {PaintPlugin} from './plugins/paint.plugin';
 import {ResizePlugin} from './plugins/resize.plugin';
 import {SelectPlugin} from './plugins/select.plugin';
 import {AbstractTool} from './tools/abstract.tool';
+import {ButtonTool} from './tools/button.tool';
 import {CircleTool} from './tools/circle.tool';
 import {DotTool} from './tools/dot.tool';
 import {EllipseTool} from './tools/ellipse.tool';
@@ -55,6 +56,7 @@ export class Editor {
         circle: new CircleTool(this),
         ellipse: new EllipseTool(this),
         line: new LineTool(this),
+        button: new ButtonTool(this),
         // dot: new DotTool(this)
     };
 

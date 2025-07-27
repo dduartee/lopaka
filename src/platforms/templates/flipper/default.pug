@@ -39,6 +39,19 @@ each layer in layers
         when 'paint'
         when 'icon'
             | @!{layer.uid};!{pad}canvas_draw_xbm(canvas, !{layer.position[0]}, !{layer.position[1]}, !{layer.size[0]}, !{layer.size[1]}, !{layer.imageName});
+        when 'button'
+            | !{pad}// Button layer - rendered as rectangle + text
+            if layer.inverted
+                | @!{layer.uid};!{pad}canvas_draw_box(canvas, !{layer.position[0]}, !{layer.position[1]}, !{layer.size[0]}, !{layer.size[1]});
+            else  
+                | @!{layer.uid};!{pad}canvas_draw_frame(canvas, !{layer.position[0]}, !{layer.position[1]}, !{layer.size[0]}, !{layer.size[1]});
+            if layer.font != font
+                - font = layer.font
+                | !{pad}canvas_set_font(canvas, !{layer.font});
+                |
+            - var textX = layer.textCenter ? layer.position[0] + (layer.size[0] - (layer.text.length * 6)) / 2 : layer.position[0] + (layer.paddingH || 2)
+            - var textY = layer.position[1] + (layer.size[1] + 8) / 2
+            | @!{layer.uid};!{pad}canvas_draw_str(canvas, !{textX}, !{textY}, "!{layer.text}");
         default 
             |
             | // Unknown layer type !{layer.type}
