@@ -19,6 +19,10 @@ export default defineConfig({
         pugTemplatePlugin,
         svgComponentPlugin,
     ],
+    // Exclude the prebuilt flipper-js module from optimization to avoid processing large eval content
+    optimizeDeps: {
+        exclude: ['src/prebuilt/flipper-js.mjs'],
+    },
     esbuild: {
         keepNames: true,
     },
@@ -34,6 +38,8 @@ export default defineConfig({
         assetsInlineLimit: 0,
         sourcemap: true,
         rollupOptions: {
+            // Treat flipper-js as external to skip processing
+            external: ['./src/prebuilt/flipper-js.mjs'],
             treeshake: true,
             input: {
                 app: resolve(__dirname, 'index.html'),
